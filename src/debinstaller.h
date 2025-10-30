@@ -16,17 +16,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #ifndef DEBINSTALLER_H
 #define DEBINSTALLER_H
 
 #include <QObject>
+#include <QString>
+#include <QStringList>
+#include <QProcess>
+#include <QFutureWatcher>
+#include <QHash>
+#include <QFile>
 
-// QApt
-#include <QApt/DebFile>
-#include <QApt/Globals>
-#include <QApt/Package>
-#include <QApt/Transaction>
+// 只包含必要的 APT 头文件
+#include <apt-pkg/cachefile.h>
+#include <apt-pkg/pkgcache.h>
+#include <apt-pkg/init.h>
+#include <apt-pkg/error.h>
 
 class DebInstaller : public QObject
 {
@@ -60,6 +65,7 @@ public:
     Q_ENUM(Status);
 
     explicit DebInstaller(QObject *parent = nullptr);
+    ~DebInstaller();
 
     QString fileName() const;
     void setFileName(const QString &fileName);
@@ -103,31 +109,36 @@ signals:
     void isInstalledChanged();
 
     void requestSwitchToInstallPage();
-
     void preInstallMessageChanged();
 
 private:
-    void setupTransaction();
+    bool initializeApt();
+    bool parseDebFile();
     void setStatus(Status status);
-
-    bool checkDeb();
-    QString maybeAppendArchSuffix(const QString& pkgName, bool checkingConflicts = false);
-    QApt::PackageList checkConflicts();
-    QApt::Package *checkBreaksSystem();
-    bool satisfyDepends();
+    
+    bool checkDependencies();
+    bool checkConflicts();
+    bool checkBreaksSystem();
+    void updatePackageInfo();
+    
+    QString formatByteSize(double size, int precision) const;
+    QString extractControlField(const QString &fieldName) const;
+    bool runDpkgCommand(const QStringList &arguments, QString &output) const;
 
 private slots:
-    void transactionStatusChanged(QApt::TransactionStatus status);
-    void errorOccurred(QApt::ErrorCode error);
-    void statusDetailsChanged(const QString &message);
+    void onInstallFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void onInstallOutput();
 
 private:
-    QApt::Backend *m_backend;
-    QApt::DebFile *m_debFile;
-    QApt::Transaction *m_transaction;
-
+    // APT 相关成员
+    pkgCacheFile *m_cacheFile;
+    
+    QProcess *m_installProcess;
+    QFutureWatcher<bool> *m_dependencyWatcher;
+    
     bool m_isValid;
     bool m_canInstall;
+    bool m_aptInitialized;
 
     QString m_fileName;
     QString m_packageName;
@@ -144,8 +155,8 @@ private:
     QString m_preInstallMessage;
 
     Status m_status;
-
-    QString m_foreignArch;
+    
+    QHash<QString, QString> m_controlFields;
 };
 
 #endif // DEBINSTALLER_H
