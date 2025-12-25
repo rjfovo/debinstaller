@@ -15,13 +15,13 @@ Homepage: https://cutefishos.com/
 
 Package: cutefish-debinstaller
 Architecture: any
-Depends: qml6-module-qtquick-controls2,
+Depends: qml6-module-qtquick-controls,
          qml6-module-qtqml,
-         qml6-module-qtquick2,
+         qml6-module-qtquick,
          qml6-module-qtquick-layouts,
          qml6-module-qt-labs-platform,
          qml6-module-qt-labs-settings,
-         qml6-module-qtquick-window2,
+         qml6-module-qtquick-window,
          qml6-module-qtquick-shapes,
          qml6-module-qtquick-dialogs,
          ${misc:Depends},
